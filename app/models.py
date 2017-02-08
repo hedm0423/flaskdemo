@@ -59,7 +59,8 @@ class User(UserMixin,db.Model):
 	member_since = db.Column(db.DateTime(), default=datetime.utcnow)
 	last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
 	avatar_hash = db.Column(db.String(32))
-
+	posts = db.relationship('Post',backref='author',lazy='dynamic')
+	
 	def __init__(self,**kwargs):
 		super(User,self).__init__(**kwargs)
 		if self.role is None:
@@ -152,6 +153,23 @@ class User(UserMixin,db.Model):
 	def is_administrator(self):
 		return self.can(Permission.ADMINISTER)
 
+	@staticmethod
+	def generate_fake(count=100):
+		from sqlalchemy.exc import IntegrityError
+		from random import seed
+		import forgery_py
+
+		seed()
+		for i in range(count):
+			u = User(email=forgery_py.internet.email_address(),username=forgery_py.internet.user_name(True),
+					password=forgery_py.lorem_ipsum.word(),confirmed=True,name=forgery_py.name.full_name(),location=forgery_py.address.city(),
+					about_me=forgery_py.lorem_ipsum.sentence(),member_since=forgery_py.date.date(True))
+			db.session.add(u)
+			try:
+				db.session.commit()
+			except IntegrityError:
+				db.session.rollback()
+
 	def __repr__(self):
 		return '<User %r>' % self.username
 
@@ -161,6 +179,26 @@ class AnonymousUser(AnonymousUserMixin):
 
 	def is_administrator(self):
 		return False
+
+class Post(db.Model):
+	__table__name = 'posts'
+	id = db.Column(db.Integer, primary_key=True)
+	body = db.Column(db.Text)
+	timestamp = db.Column(db.DateTime,index=True,default=datetime.utcnow)
+	author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+	@staticmethod
+	def generate_fake(count=100):
+		from random import seed,randint
+		import forgery_py
+
+		seed()
+		user_count = User.query.count()
+		for i in range(count):
+			u = User.query.offset(randint(0,user_count - 1)).first()
+			p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1,3)),timestamp=forgery_py.date.date(True),author=u)
+			db.session.add(p)
+			db.session.commit()
 
 login_manager.anonymous_user = AnonymousUser
 
