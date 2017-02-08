@@ -10,7 +10,7 @@ class Config:
 	MAIL_PORT = 465
     #MAIL_PORT = 25
 	#MAIL_USE_TLS = True
-	#MAIL_USE_SSL = True
+	MAIL_USE_SSL = True
 	MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
 	MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 	FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
